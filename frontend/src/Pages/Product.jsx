@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { ShopContext } from "../context/ShopContext";
 import { useState } from "react";
 import { assets } from "../assets/assets";
-import RelatedProducts from "../components/RelatedProducts";
+import RelatedProduct from "../components/RelatedProduct";
 
 const Product = () => {
   const { productId } = useParams();
@@ -47,7 +47,7 @@ const Product = () => {
             ))}
           </div>
 
-          <div className='w-full sm:w-[8-%]'>
+          <div className='w-full sm:w-[80%]'>
             <img className='w-full h-auto' src={image} alt='image' />
           </div>
         </div>
@@ -126,10 +126,7 @@ const Product = () => {
       </div>
 
       {/* ------display related products */}
-      <RelatedProducts
-        category={productData.category}
-        subCategory={productData.subCategory}
-      />
+      <RelatedProduct category={productData.category}subCategory={productData.subCategory}/>
     </main>
   ) : (
     <div className='opacity-0'></div>
