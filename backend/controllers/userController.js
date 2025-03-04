@@ -1,62 +1,57 @@
-// import validator from "validator";
-// import bcrypt from "bcrypt";
-// import userModel from "../models/user.model.js";
+import validator from "validator";
+import bcrypt from "bcrypt";
+import userModel from "../models/userModel.js";
 // import createError from "http-errors";
 // import { createToken } from "../helpers/jsonwebtoken.js";
 // import { errorResponse, successResponse } from "./response.controller.js";
 // import { adminEmail, adminPassword, jwtSecret } from "../secret.js";
-// import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
+const createToken =(id) =>{
+  return jwt.sign({id},process.env.JWT_SECRET)
+}
 
 //route for user register
 const registerUser = async (req, res, next) => {
-//   try {
-//     const { name, email, password } = req.body;
+  try {
+    const { name, email, password } = req.body;
 
-//     const existUser = await userModel.findOne({ email });
-//     if (existUser) {
-//       throw createError(400, "Email already used. Try another email ID");
-//     }
+    //check user already exists
+    const existUser = await userModel.findOne({ email });
+    if (existUser) {
+      return res.json({success:false, message:"User already Registered"})
+    }
 
-//     //validating emal and password
-//     if (!validator.isEmail(email)) {
-//       throw createError(400, "Please inter a valid email");
-//     }
+    //validating email and strong password
+    if (!validator.isEmail(email)) {
+      return res.json({success:false, message:"Please enter a valid email"})
+    }
+    
+    if (password.length < 8) {
+      return res.json({success:false, message:"Password must be 8char+ "})
+    }
 
-//     if (!validator.isStrongPassword(password)) {
-//       throw createError(
-//         400,
-//         "Password must be 8char+ long with one uppercase ,lowercase and symbol"
-//       );
-//     }
+    // hashing user password
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
 
-//     const salt = await bcrypt.genSalt(10);
+    const newUser = await userModel.create({
+      name,
+      email,
+      password: hashPassword,
+    });
 
-//     const hashPassword = await bcrypt.hash(password, salt);
-
-//     const user = await userModel.create({
-//       name,
-//       email,
-//       password: hashPassword,
-//     });
-//     if (!user) {
-//       throw createError(404, "User not found");
-//     }
-
-//     //create token
-//     const token = createToken(user._id);
-//     if (!token) {
-//       throw createError(400, "Token not found");
-//     }
-//     return successResponse(res, {
-//       statusCode: 200,
-//       message: "User created successfully",
-//       payload: token,
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-    res.json({msg:"Api working register"})
+    const user = await newUser.save()
+    
+    //create token
+    const token = createToken(user._id);
+    res.json({success:true,token})
+  } catch (error) {
+    console.log(error);
+    res.json({success:false, message: error.message})
+    
+  }
+   
 }
 
 //route for user login
@@ -64,27 +59,24 @@ const loginUser = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    const existEmail = await userModel.findOne({ email });
+    const user = await userModel.findOne({ email });
 
-    if (!existEmail) {
-      throw createError(400, "Email not exist ,please register first");
+    if (!user) {
+      return res.json({success:false, message:"User does not exist"})
     }
 
-    const matchPassword = bcrypt.compare(password, existEmail.password);
+    const isMatch = await  bcrypt.compare(password, user.password);
 
-    if (!matchPassword) {
-      throw createError(400, "Password not match!");
+    if (isMatch) {
+      const token = createToken(user._id);
+      res.json({success:true, token})
+    }
+    else{
+      res.json({success:false, message:"Invalid Credentials"})
     }
 
-    const token = createToken(existEmail._id);
-
-    return successResponse(res, {
-      statusCode: 200,
-      message: "User login successfully",
-      payload: token,
-    });
   } catch (error) {
-    next(error);
+    res.json({success:false,message : error.message})
   }
 };
 
